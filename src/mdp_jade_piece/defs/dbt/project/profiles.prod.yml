@@ -1,0 +1,11 @@
+mdp_service:
+  target: prod
+  outputs:
+    prod:
+      type: snowflake
+      account: ""
+      user: ""
+      database: "NEEMBA"
+      schema: "jade_piece"
+      warehouse: ""
+      role: "TRANSFORM"

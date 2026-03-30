@@ -1,0 +1,250 @@
+name: Build, Push and deploy new dagster project
+
+on:
+  push:
+    # branches:
+    #   - main
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Docker image tag (defaults to git SHA)"
+        required: false
+        type: string
+
+env:
+  REGISTRY: ${{ vars.NEEMBA_LOCAL_DATA_REGISTRY || 'dagster-registry:6000' }}
+  IMAGE_NAME: ${{ github.event.repository.name }}
+
+jobs:
+  determine-tag:
+    runs-on: self-hosted
+    outputs:
+      image_tag: ${{ steps.tag.outputs.IMAGE_TAG }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine image tag
+        id: tag
+        run: |
+          if [ -n "${{ github.event.inputs.image_tag }}" ]; then
+            echo "IMAGE_TAG=${{ github.event.inputs.image_tag }}" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "IMAGE_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          else
+            echo "IMAGE_TAG=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+          fi
+
+  build-and-push:
+    runs-on: self-hosted
+    needs: determine-tag
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate GitHub App Token
+        id: generate_token
+        uses: tibdex/github-app-token@v2
+        with:
+          app_id: ${{ secrets.WORKFLOW_GRLOBAL_APP_ID }}
+          private_key: ${{ secrets.WORKFLOW_GRLOBAL_APP_KEY }}
+
+      - name: Build and push Docker image
+        run: |
+          docker build --build-arg GITHUB_TOKEN=${{ steps.generate_token.outputs.token }} -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.determine-tag.outputs.image_tag }} .
+          docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.determine-tag.outputs.image_tag }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.determine-tag.outputs.image_tag }}
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+  update-manifest-and-deploy:
+    runs-on: self-hosted
+    needs: [determine-tag, build-and-push]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Update k8s manifest with new image tag
+        run: |
+          FULL_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.determine-tag.outputs.image_tag }}"
+          sed -i 's/code-example/${{ env.IMAGE_NAME }}/g' k8s/main.yaml          
+          sed -i "s|image: ${{ env.REGISTRY }}/[^:]*:.*|image: ${FULL_IMAGE}|g" k8s/main.yaml
+          sed -i "/name: DAGSTER_CURRENT_IMAGE/,/value:/ s|value: .*|value: \"${FULL_IMAGE}\"|" k8s/main.yaml
+
+          SERVICE_NAME=$(grep -A5 "kind: Service" k8s/main.yaml | grep "name:" | head -1 | awk '{print $2}')
+          if [[ ! "$SERVICE_NAME" =~ ^dagster-user- ]]; then
+            echo "ERROR: Service name must start with 'dagster-user-' prefix"
+            echo "Current service name: $SERVICE_NAME"
+            exit 1
+          fi
+
+          echo "=== Updated k8s/main.yaml ==="
+          echo "Deployment name: ${{ env.IMAGE_NAME }}"
+          echo "Service name: $SERVICE_NAME ✓"
+          echo "App label: ${{ env.IMAGE_NAME }}"
+          echo ""
+          echo "Image references:"
+          grep "image:" k8s/main.yaml | grep -v "#"
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: "latest"
+
+      - name: Configure kubectl with kubeconfig
+        run: |
+          echo "${{ secrets.NEEMBA_LOCAL_DATA_KUBECONFIG }}" | base64 -d > /tmp/kubeconfig
+          echo "KUBECONFIG=/tmp/kubeconfig" >> $GITHUB_ENV
+
+      - name: Apply k8s configuration
+        run: |
+          kubectl apply -f k8s/main.yaml
+
+          kubectl rollout restart deployment/${{ env.IMAGE_NAME }} -n dagster
+          kubectl rollout status deployment/${{ env.IMAGE_NAME }} -n dagster --timeout=300s
+
+          kubectl get deployment ${{ env.IMAGE_NAME }} -n dagster
+          kubectl get pods -n dagster -l app=${{ env.IMAGE_NAME }}
+
+          echo ""
+          echo "=== Service Status ==="
+          kubectl get service dagster-user-${{ env.IMAGE_NAME }} -n dagster
+
+  update-minio:
+    runs-on: self-hosted
+    needs: update-manifest-and-deploy
+
+    steps:
+      - name: Update dagster.json in MinIO
+        run: |
+          if ! command -v mc &> /dev/null; then
+            wget https://dl.min.io/client/mc/release/linux-amd64/mc
+            chmod +x mc
+            sudo mv mc /usr/local/bin/
+          fi
+                    
+          mc alias set minio ${{ vars.NEEMBA_LOCAL_MINIO_HOST }} ${{ secrets.NEEMBA_LOCAL_MINIO_ACCESS_KEY }} ${{ secrets.NEEMBA_LOCAL_MINIO_SECRET_KEY }}
+
+          mc cp minio/dagster/dagster-pipelines/dagster.json ./dagster.json || echo "[]" > ./dagster.json
+
+          PROJECT_NAME="${{ github.event.repository.name }}"
+          PROJECT_URL="${{ github.event.repository.html_url }}"
+
+          if ! command -v jq &> /dev/null; then
+            sudo apt-get update && sudo apt-get install -y jq
+          fi
+
+          jq --arg name "$PROJECT_NAME" --arg repo "$PROJECT_URL" '
+            map(select(.name != $name)) + [{"name": $name, "repository": $repo}]
+          ' dagster.json > dagster_updated.json
+
+          if ! jq empty dagster_updated.json 2>/dev/null; then
+            echo "ERROR: Invalid JSON format"
+            cat dagster_updated.json
+            exit 1
+          fi
+
+          echo "=== Updated dagster.json ==="
+          jq . dagster_updated.json
+
+          mc cp dagster_updated.json minio/dagster/dagster-pipelines/dagster.json
+
+          echo "Successfully updated dagster.json in MinIO"
+
+  sync-dbt-to-snowflake:
+    runs-on: self-hosted
+    needs: build-and-push
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+
+      - name: Install Snowflake CLI
+        run: |
+          wget https://sfc-repo.snowflakecomputing.com/snowflake-cli/linux_x86_64/3.12.0/snowflake-cli-3.12.0.x86_64.deb
+          sudo dpkg -i snowflake-cli-3.12.0.x86_64.deb
+
+      - name: Setup private key
+        run: |
+          echo "${{ secrets.SNOWFLAKE_PRIVATE_KEY }}" | base64 -d > snowflake_rsa_key.p8
+          chmod 600 snowflake_rsa_key.p8
+
+      - name: Configure Snowflake connection
+        run: |
+          mkdir -p ~/.snowflake
+          cat > ~/.snowflake/config.toml <<EOF
+          [connections.deploy]
+          account = "${{ secrets.SNOWFLAKE_ACCOUNT }}"
+          user = "${{ secrets.SNOWFLAKE_USER }}"
+          authenticator = "SNOWFLAKE_JWT"
+          private_key_file = "snowflake_rsa_key.p8"
+          EOF
+          chmod 0600 ~/.snowflake/config.toml
+
+      - name: Set derived variables
+        id: vars
+        run: |
+          REPO_NAME="${{ github.event.repository.name }}"
+
+          if [[ ! "$REPO_NAME" =~ ^mdp- ]]; then
+            echo " WARNING: Repository name does not start with 'mdp-' prefix"
+            echo "Current: $REPO_NAME"
+          fi
+
+          PYTHON_MODULE=$(echo "$REPO_NAME" | tr '-' '_')
+          echo "PYTHON_MODULE=${PYTHON_MODULE}" >> $GITHUB_OUTPUT
+          echo "✓ Python module name: ${PYTHON_MODULE}"
+
+          SCHEMA="services"
+          echo "SCHEMA=${SCHEMA}" >> "$GITHUB_OUTPUT"
+          echo "✓ Schema name: ${SCHEMA}"
+
+          echo ""
+          echo "=== Derived Configuration ==="
+          echo "Repository:    $REPO_NAME"
+          echo "Python Module: $PYTHON_MODULE"
+          echo "Schema:        $SCHEMA"
+
+      - name: Prepare dbt project for production deployment
+        run: |
+          # Clean dbt artifacts
+          rm -rf src/${{ steps.vars.outputs.PYTHON_MODULE }}/defs/dbt/project/target
+          rm -rf src/${{ steps.vars.outputs.PYTHON_MODULE }}/defs/dbt/project/logs
+          rm -rf src/${{ steps.vars.outputs.PYTHON_MODULE }}/defs/dbt/project/dbt_packages
+
+          cp src/${{ steps.vars.outputs.PYTHON_MODULE }}/defs/dbt/project/profiles.prod.yml \
+             src/${{ steps.vars.outputs.PYTHON_MODULE }}/defs/dbt/project/profiles.yml
+
+          echo "dbt project prepared for production deployment"
+
+      - name: Deploy dbt project to Snowflake
+        run: |
+          snow dbt deploy ${{ steps.vars.outputs.PYTHON_MODULE }} \
+            --source src/${{ steps.vars.outputs.PYTHON_MODULE }}/defs/dbt/project \
+            --database NEEMBA \
+            --schema ${{ steps.vars.outputs.SCHEMA }} \
+            --warehouse COMPUTE_WH \
+            --role TRANSFORM \
+            -c deploy
+
+          echo "dbt project '${{ steps.vars.outputs.PYTHON_MODULE }}' synced to Snowflake schema '${{ steps.vars.outputs.SCHEMA }}'"
+
+      - name: Validate dbt project
+        run: |
+          snow sql -q "SHOW DBT PROJECTS IN SCHEMA ${{ steps.vars.outputs.SCHEMA }}" -c deploy
+          echo "dbt project validation complete for schema: ${{ steps.vars.outputs.SCHEMA }}"

@@ -1,0 +1,103 @@
+name: 'mdp_jade_piece'
+version: '1.0.0'
+config-version: 2
+
+profile: 'mdp_jade_piece'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  mdp_jade_piece:
+    silver:
+      +materialized: view
+      +tags: ["silver", "transformation"]
+      order_part:
+        silver_order_part_bx:
+          +alias: "B_SILVER_ORDER_PART_BX"
+        silver_order_part_mu:
+          +alias: "B_SILVER_ORDER_PART_MU"
+        +tags: ["silver", "order_part_header", "order_part_lines"]
+        +docs:
+          node_color: "#4CAF50"
+      
+      quote_part:
+        silver_quote_part_bx:
+          +alias: "B_SILVER_QUOTE_PART_BX"
+        silver_quote_part_mu:
+          +alias: "B_SILVER_QUOTE_PART_MU"
+        +tags: ["silver", "quote_part_header", "quote_part_lines"]
+        +docs:
+          node_color: "#4CAF50"
+      
+      delivery_part:
+        silver_delivery_part_bx:
+          +alias: "B_SILVER_DELIVERY_PART_BX"
+        silver_delivery_part_mu:
+          +alias: "B_SILVER_DELIVERY_PART_MU"
+        +tags: ["silver", "delivery_part_header", "delivery_part_lines"]
+        +docs:
+          node_color: "#4CAF50"
+
+      order_part_sales:
+        silver_order_part_sales_bx:
+          +alias: "B_SILVER_ORDER_PART_SALES_BX"
+        silver_order_part_sales_mu:
+          +alias: "B_SILVER_ORDER_PART_SALES_MU"
+        silver_order_part_sales:
+          +alias: "B_SILVER_ORDER_PART_SALES"
+        +tags: ["silver", "order_part_sales"]
+        +docs:
+          node_color: "#4CAF50"
+
+      quote_part_sales:
+        silver_quote_part_sales_bx:
+          +alias: "B_SILVER_QUOTE_PART_SALES_BX"
+        +tags: ["silver", "quote_part_sales"]
+        +docs:
+          node_color: "#4CAF50"
+          
+      linkage_jade_irium:
+        silver_linkage_jade_irium:
+          +alias: "B_SILVER_LINKAGE_JADE_IRIUM"
+        +tags: ["silver", "linkage_jade_irium"]
+        +docs:
+          node_color: "#4CAF50"
+
+tests:
+  mdp_jade_piece:
+    +severity: warn
+    +store_failures: true
+
+vars:
+  bronze_prefix: 'a_bronze_'
+  silver_prefix: 'b_silver_'
+  gold_prefix: 'c_gold_'
+  schema_name: 'jade_piece'
+  lookback_days: 90
+  environment: 'production'
+
+dispatch:
+  - macro_namespace: dbt
+    search_order: ['mdp_jade_piece', 'dbt']
+
+on-run-start:
+  - "{{ log('========================================', info=true) }}"
+  - "{{ log('Starting dbt run for MDP Jade Piece', info=true) }}"
+  - "{{ log('Environment: ' ~ var('environment'), info=true) }}"
+  - "{{ log('Schema: ' ~ var('schema_name'), info=true) }}"
+  - "{{ log('========================================', info=true) }}"
+
+on-run-end:
+  - "{{ log('========================================', info=true) }}"
+  - "{{ log('Completed dbt run for MDP Jade Piece', info=true) }}"
+  - "{{ log('========================================', info=true) }}"

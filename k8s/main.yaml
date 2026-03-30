@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: code-example
+  namespace: dagster
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: code-example
+  template:
+    metadata:
+      labels:
+        app: code-example
+    spec:
+      containers:
+        - name: code-example
+          image: dagster-registry:6000/code-example:latest
+          imagePullPolicy: Always
+          env:
+            - name: DAGSTER_CURRENT_IMAGE
+              value: "dagster-registry:6000/code-example:latest" # THIS IS CRITICAL! need to be the same as image
+            - name: DAGSTER_PG_HOST
+              value: "neemba-dagster-postgresql"
+            - name: DAGSTER_PG_PORT
+              value: "5432"
+            - name: DAGSTER_PG_DB
+              value: "postgres"
+            - name: DAGSTER_PG_USERNAME
+              value: "postgres"
+            - name: DAGSTER_PG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dagster-postgresql-secret
+                  key: postgresql-password
+          # Copy your env secrets from main config
+          envFrom:
+            - secretRef:
+                name: minio-credentials
+            - secretRef:
+                name: snowflake-credentials
+            - secretRef:
+                name: informix-credentials
+          ports:
+            - containerPort: 4000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  # IMPORTANT: should always start with 'dagster-user-' prefix otherwise it will not be picked up by dagster
+  name: dagster-user-code-example
+  namespace: dagster
+spec:
+  selector:
+    app: code-example
+  ports:
+    - port: 4000
+      targetPort: 4000

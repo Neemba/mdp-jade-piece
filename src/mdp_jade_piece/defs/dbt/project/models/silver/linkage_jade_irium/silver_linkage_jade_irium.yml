@@ -1,0 +1,27 @@
+version: 2
+
+models:
+  - name: silver_linkage_jade_irium
+    description: |
+      Link between concept in Jade and Irium from Jade.
+
+      This silver layer model provides a clean, business-friendly view of all jade and Irium linkage. 
+      Sourced from the as400 tables.
+
+    config:
+      tags: ["silver", "link_jade_irium"]
+
+    #columns:
+      #- name: dbt_processed_at
+      #  description: "Timestamp when dbt processed this data"
+      #  tests:
+      #    - not_null
+#
+      #- name: dbt_model_name
+      #  description: "Name of the dbt model that created this record"
+#
+      #- name: layer_prefix
+      #  description: "Data layer prefix (silver)"
+#
+      #- name: business_domain
+      #  description: "Business domain classification"

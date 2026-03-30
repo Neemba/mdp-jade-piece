@@ -1,0 +1,37 @@
+[project]
+name = "mdp_jade_piece"
+requires-python = ">=3.12"
+version = "0.1.0"
+dependencies = [
+    "mdp_common",
+    "dbt-core>=1.10.13",
+    "dbt-snowflake>=1.10.2",
+    "dagster>=1.12.10",
+    "dagster-webserver>=1.12.10",
+    "dagster-dg-cli>=1.12.10",
+    "pyodbc>=5.3.0",
+]
+
+[tool.uv.sources]
+# Production: Use git repository with version tag
+mdp-common = { git = "https://github.com/Neemba/mdp-common.git", tag = "v0.2.0" }
+
+# Development: Use local path for testing
+# mdp-common = { path = "../mdp-common", editable = true }
+
+[dependency-groups]
+dev = ["black>=24.4.2", "dagster-webserver", "pytest>=8.1.1", "ruff>=0.4.4"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.dg]
+directory_type = "project"
+
+[tool.dg.project]
+root_module = "mdp_jade_piece"
+registry_modules = ["mdp_jade_piece.components.*"]

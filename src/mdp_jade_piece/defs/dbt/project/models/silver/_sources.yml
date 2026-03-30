@@ -1,0 +1,47 @@
+version: 2
+
+sources:
+  - name: bronze
+    description: "Bronze layer (raw AS400 data extracted by Dagster)"
+    database: "{{ env_var('SNOWFLAKE_DATABASE', 'NEEMBA') }}"
+    schema: jade_piece
+
+    tables:
+      - name: A_BRONZE_AS400_CDEENT_BX
+        description: "order header information (Source: as400:bxnego_fic.cdeent)"
+
+      - name: a_bronze_as400_cdelig_bx
+        description: "order line information (Source: as400:bxnego_fic.cdelig)"
+        
+      - name: A_BRONZE_AS400_CDEENT
+        description: "order header information (Source: as400:negoce_fic.cdeent)"
+
+      - name: a_bronze_as400_cdelig
+        description: "order line information (Source: as400:negoce_fic.cdelig)"
+
+      - name: A_BRONZE_AS400_DEVENT_BX
+        description: "quote header information (Source: as400:bxnego_fic.devent)"
+
+      - name: a_bronze_as400_devlig_bx
+        description: "quote line information (Source: as400:bxnego_fic.devlig)"
+        
+      - name: A_BRONZE_AS400_DEVENT
+        description: "quote header information (Source: as400:negoce_fic.devent)"
+
+      - name: a_bronze_as400_devlig
+        description: "quote line information (Source: as400:negoce_fic.devlig)"
+
+      - name: A_BRONZE_AS400_LIVENT_BX
+        description: "delivery header information (Source: as400:bxnego_fic.livent)"
+
+      - name: A_BRONZE_AS400_LIVLIG_BX
+        description: "delivery line information (Source: as400:bxnego_fic.livlig)"
+        
+      - name: A_BRONZE_AS400_LIVENT
+        description: "delivery header information (Source: as400:negoce_fic.livent)"
+
+      - name: A_BRONZE_AS400_LIVLIG
+        description: "delivery line information (Source: as400:negoce_fic.livlig)"
+
+      - name: a_bronze_as400_jadirium
+        description: "quote line information (Source: as400:negoce_fic.devlig)"

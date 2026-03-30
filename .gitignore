@@ -1,0 +1,77 @@
+# Node / general environment files
+.env
+.env.*  # .env.development, .env.local, etc.
+.venv
+
+# Dagster temp files
+.tmp_dagster_*
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependency directories
+node_modules/
+bower_components/
+
+# Build output
+dist/
+build/
+out/
+
+# Editor folders
+.vscode/
+.idea/
+*.sublime-workspace
+
+# Optional: ignore coverage reports
+coverage/
+
+# Optional: ignore local database / test files
+*.sqlite
+*.sqlite3
+*.db
+
+# Optional: ignore temp files
+*.tmp
+*.swp
+*.swo
+.tmp_dagster_home_tgmdixvk
+
+# Optional: ignore local database / test files
+# jt400-11.2.jar
+jt400-11.2.jar.1
+
+snowflake-table-descriptions.sql
+
+uv.lock
+
+# dbt artifacts and cache
+src/mdp_jade_piece/defs/dbt/project/target/
+src/mdp_jade_piece/defs/dbt/project/dbt_packages/
+src/mdp_jade_piece/defs/dbt/project/logs/
+src/mdp_jade_piece/defs/dbt/project/.user.yml
+
+### jsgane file
+jsgane_ssh
+jsgane_ssh.pub
+
+#dbt internatan rep
+src/mdp_jade_piece/defs/dbt/project/target/compiled/inline*
+src/mdp_jade_piece/defs/dbt/project/target/inline*
+src/mdp_jade_piece/defs/dbt/project/target/schemas/analyzed/*
+src/mdp_jade_piece/defs/dbt/project/dbt_internal_packages*
+src/mdp_jade_piece/defs/dbt/project/target/*

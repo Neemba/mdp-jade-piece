@@ -1,0 +1,27 @@
+version: 2
+
+models:
+  - name: silver_order_part_bx
+    description: |
+      order part header and line from jade.
+
+      This silver layer model provides a clean, business-friendly view of all order part. 
+      Sourced from the as400 tables.
+
+    config:
+      tags: ["silver", "order_part_header_bx", "order_part_line_bx"]
+
+    columns:
+      - name: dbt_processed_at
+        description: "Timestamp when dbt processed this data"
+        tests:
+          - not_null
+
+      - name: dbt_model_name
+        description: "Name of the dbt model that created this record"
+
+      - name: layer_prefix
+        description: "Data layer prefix (silver)"
+
+      - name: business_domain
+        description: "Business domain classification"
