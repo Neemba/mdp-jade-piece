@@ -210,7 +210,7 @@ jobs:
           echo "PYTHON_MODULE=${PYTHON_MODULE}" >> $GITHUB_OUTPUT
           echo "✓ Python module name: ${PYTHON_MODULE}"
 
-          SCHEMA="services"
+          SCHEMA="jade_piece"
           echo "SCHEMA=${SCHEMA}" >> "$GITHUB_OUTPUT"
           echo "✓ Schema name: ${SCHEMA}"
 
