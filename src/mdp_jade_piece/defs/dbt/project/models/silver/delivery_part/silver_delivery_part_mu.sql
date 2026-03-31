@@ -122,6 +122,7 @@ header as (
         NPS,
         CODEDATEVALEUR
     from delivery_header
+    where DATECREAT >= '20230123'
         
 ),
 

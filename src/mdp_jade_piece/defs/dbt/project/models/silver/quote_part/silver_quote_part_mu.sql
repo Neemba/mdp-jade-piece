@@ -123,6 +123,8 @@ header as (
         DATERELANCE,
         NBRELANCE
     from quote_header
+    where DATECREAT >= '20230123'
+
         
 ),
 

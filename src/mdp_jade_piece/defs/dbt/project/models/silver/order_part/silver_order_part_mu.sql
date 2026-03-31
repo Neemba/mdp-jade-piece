@@ -123,6 +123,7 @@ header as (
         DATERECEPTIONPO,
         DATERECEPTIONPOVALIDE
     from order_header
+    where DATECREAT >= '20230123'
         
 ),
 

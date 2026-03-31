@@ -163,10 +163,10 @@ def fetch_table(schema: str, table_name: str, date_column: str = None, days_back
     conn = get_db2_engine()
     cursor = conn.cursor()
 
-    query = f"SELECT * FROM {schema}/{table_name}"        # ← Automatiser le BXNEGO avec une variable
+    query = f"SELECT * FROM {schema}/{table_name}"
     if load_mode != "full" and date_column:
         #date_filter = (datetime.now() - timedelta(days=days_back)).strftime("%Y-%m-%d")
-        query += f" WHERE {date_column} >= '20230123'"              #'{date_filter}'"
+        query += f" WHERE {date_column} >= '{date_filter}'"
 
     cursor.execute(query)
 
