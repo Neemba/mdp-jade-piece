@@ -75,3 +75,6 @@ src/mdp_jade_piece/defs/dbt/project/target/inline*
 src/mdp_jade_piece/defs/dbt/project/target/schemas/analyzed/*
 src/mdp_jade_piece/defs/dbt/project/dbt_internal_packages*
 src/mdp_jade_piece/defs/dbt/project/target/*
+
+
+src/mdp_jade_piece/defs/dbt/project/profiles.yml
