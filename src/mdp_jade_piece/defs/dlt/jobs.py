@@ -2,31 +2,26 @@ import dagster as dg
 from ..config import GROUP_BRONZE
 
 
+# DB2LoadConfig fields: load_mode, days_back, extraction_method
+# The extraction method (jdbc vs odbc_direct) is already determined by
+# which factory created each asset, so we only configure load_mode and days_back.
+
 daily_job = dg.define_asset_job(
     name="as400_daily_job",
     description="Daily incremental load",
     selection=dg.AssetSelection.groups(GROUP_BRONZE),
     config={
         "ops": {
-            # Tables with incremental support (date-based filtering)
             "order_part_header": {
                 "config": {
                     "load_mode": "incremental",
-                    "extraction_method": "auto",
-                    "jdbc_threshold": 10000,
-                    "unload_direct_threshold": 500000,
-                    "get_count": True,
-                    "persist_parquet": True,
+                    "days_back": 7,
                 }
             },
             "supply_bx_header": {
                 "config": {
                     "load_mode": "incremental",
-                    "extraction_method": "auto",
-                    "jdbc_threshold": 10000,
-                    "unload_direct_threshold": 500000,
-                    "get_count": True,
-                    "persist_parquet": True,
+                    "days_back": 7,
                 }
             },
         },
@@ -43,111 +38,56 @@ full_refresh_job = dg.define_asset_job(
             "order_part_header": {
                 "config": {
                     "load_mode": "full",
-                    "extraction_method": "auto",
-                    "jdbc_threshold": 10000,
-                    "unload_direct_threshold": 500000,
-                    "get_count": True,
-                    "persist_parquet": True,
                 }
             },
             "order_part_bx_header": {
                 "config": {
                     "load_mode": "full",
-                    "extraction_method": "auto",
-                    "jdbc_threshold": 10000,
-                    "unload_direct_threshold": 500000,
-                    "get_count": True,
-                    "persist_parquet": True,
                 }
             },
             "order_part_line": {
                 "config": {
                     "load_mode": "full",
-                    "extraction_method": "auto",
-                    "jdbc_threshold": 10000,
-                    "unload_direct_threshold": 500000,
-                    "get_count": True,
-                    "persist_parquet": True,
                 }
             },
             "order_part_bx_line": {
                 "config": {
                     "load_mode": "full",
-                    "extraction_method": "auto",
-                    "jdbc_threshold": 10000,
-                    "unload_direct_threshold": 500000,
-                    "get_count": True,
-                    "persist_parquet": True,
                 }
             },
             "supply_bx_header": {
                 "config": {
                     "load_mode": "full",
-                    "extraction_method": "auto",
-                    "jdbc_threshold": 10000,
-                    "unload_direct_threshold": 500000,
-                    "get_count": True,
-                    "persist_parquet": True,
                 }
             },
             "supply_bx_line": {
                 "config": {
                     "load_mode": "full",
-                    "extraction_method": "auto",
-                    "jdbc_threshold": 10000,
-                    "unload_direct_threshold": 500000,
-                    "get_count": True,
-                    "persist_parquet": True,
                 }
             },
             "third_party": {
                 "config": {
                     "load_mode": "full",
-                    "extraction_method": "auto",
-                    "jdbc_threshold": 10000,
-                    "unload_direct_threshold": 500000,
-                    "get_count": True,
-                    "persist_parquet": True,
                 }
             },
             "delivery_part_header": {
                 "config": {
                     "load_mode": "full",
-                    "extraction_method": "auto",
-                    "jdbc_threshold": 10000,
-                    "unload_direct_threshold": 500000,
-                    "get_count": True,
-                    "persist_parquet": True,
                 }
             },
             "delivery_part_bx_header": {
                 "config": {
                     "load_mode": "full",
-                    "extraction_method": "auto",
-                    "jdbc_threshold": 10000,
-                    "unload_direct_threshold": 500000,
-                    "get_count": True,
-                    "persist_parquet": True,
                 }
             },
             "delivery_part_line": {
                 "config": {
                     "load_mode": "full",
-                    "extraction_method": "auto",
-                    "jdbc_threshold": 10000,
-                    "unload_direct_threshold": 500000,
-                    "get_count": True,
-                    "persist_parquet": True,
                 }
             },
             "delivery_part_bx_line": {
                 "config": {
                     "load_mode": "full",
-                    "extraction_method": "auto",
-                    "jdbc_threshold": 10000,
-                    "unload_direct_threshold": 500000,
-                    "get_count": True,
-                    "persist_parquet": True,
                 }
             },
         },

@@ -14,10 +14,10 @@ dependencies = [
 
 [tool.uv.sources]
 # Production: Use git repository with version tag
-mdp-common = { git = "https://github.com/Neemba/mdp-common.git", tag = "v0.2.0" }
+mdp-common = { git = "https://github.com/Neemba/mdp-common.git", tag = "v0.4.0" }
 
 # Development: Use local path for testing
-# mdp-common = { path = "../mdp-common", editable = true }
+# mdp-common = { path = "../../mdp-common", editable = true }
 
 [dependency-groups]
 dev = ["black>=24.4.2", "dagster-webserver", "pytest>=8.1.1", "ruff>=0.4.4"]

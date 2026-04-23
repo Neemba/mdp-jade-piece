@@ -1,58 +1,25 @@
-import dlt
 from dlt.common.schema.typing import TColumnSchema
 from typing import Dict, Any
-from mdp_common.config.base import (
-    InformixLoadConfig,
-    get_optimized_runtime_config,
-    WRITE_DISPOSITION_MAP,
-)
 from mdp_common.config.table_info import get_table_info as get_common_table_info
 
 DATASET_NAME = "JADE_PIECE"
 
 
-# Extraction method thresholds
-# JDBC is very slow for Informix, so we use UNLOAD even for small tables
-JDBC_THRESHOLD = 10000  # Never use JDBC, always use UNLOAD
-UNLOAD_DIRECT_THRESHOLD = 500000  # Use UNLOAD DIRECT for tables > 500K rows
-
-
-FORCE_JDBC_TABLES = {}
-
-
-TABLE_OWNER_MAPPING = {}
-
 def get_column_hints(table_name: str) -> Dict[str, TColumnSchema]:
     """
     Génère les hints de colonnes pour forcer les types dans DLT.
-
     """
-    COLUMN_HINTS = { # Forcer les varchar dans le chargement
+    COLUMN_HINTS = {
         "CDEENT": {
-            "datedemmodifpo": {"data_type": "text"},      
-            "datepovalide":    {"data_type": "text"},     
-            "datereceptionpovalide":    {"data_type": "text"},     
+            "datedemmodifpo": {"data_type": "text"},
+            "datepovalide": {"data_type": "text"},
+            "datereceptionpovalide": {"data_type": "text"},
         },
         "DEVENT": {
-            "daterelance": {"data_type": "text"},    
+            "daterelance": {"data_type": "text"},
         },
     }
     return COLUMN_HINTS.get(table_name, {})
-
-### Pour les tables du schéma informix
-def get_database_schema(table_name: str) -> str:
-    """Get the correct database:owner schema for a table."""
-    if table_name == "sip_lnk":
-        owner = TABLE_OWNER_MAPPING.get(table_name, "regix")
-    else:
-        owner = TABLE_OWNER_MAPPING.get(table_name, "informix")
-    return f"ie_delmas:{owner}"
-
-###### Pour les tables du schéma regix
-###def get_database_schema_rgx(table_name: str) -> str:
-###    """Get the correct database:owner schema for a table."""
-###    owner = TABLE_OWNER_MAPPING.get(table_name, "regix")
-###    return f"ie_delmas:{owner}"
 
 
 
